@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_module">
+    <sys_module action="INSERT_OR_UPDATE">
+        <content><![CDATA[import { gs, GlideRecord, GlideDateTime } from '@servicenow/glide'
+
+// Azure Key Vault Integration Service
+export function azureKeyVaultSync(request, response) {
+  try {
+    const method = request.method
+    const pathParam = request.pathParams.vault_name
+    
+    if (method === 'GET' && pathParam) {
+      // Sync certificates from specific Key Vault
+      return syncKeyVaultCertificates(pathParam, response)
+    } else if (method === 'GET') {
+      // Get all Key Vaults and sync all certificates
+      return syncAllKeyVaults(response)
+    } else if (method === 'POST') {
+      // Manual trigger for certificate discovery
+      return triggerManualSync(request, response)
+    }
+    
+    response.setStatus(405)
+    response.setBody({ error: 'Method not allowed' })
+    
+  } catch (error) {
+    gs.error('Azure Key Vault Sync Error: ' + error.message)
+    response.setStatus(500)
+    response.setBody({ error: 'Internal server error', message: error.message })
+  }
+}
+
+function syncKeyVaultCertificates(vaultName, response) {
+  // Simulate Azure Key Vault API call
+  // In real implementation, use IntegrationHub REST Message
+  const mockCertificates = [
+    {
+      id: `/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/${vaultName}/certificates/webapp-ssl`,
+      name: `${vaultName}-webapp-ssl`,
+      properties: {
+        x509Thumbprint: 'A1B2C3D4E5F6789012345678901234567890ABCD',
+        subject: 'CN=webapp.company.com',
+        subjectAlternativeNames: {
+          dnsNames: ['webapp.company.com', 'api.company.com']
+        },
+        notBefore: '2023-01-15T00:00:00Z',
+        notAfter: '2024-12-15T23:59:59Z',
+        keySize: 2048,
+        keyType: 'RSA',
+        issuer: 'CN=DigiCert Inc'
+      },
+      tags: {
+        Environment: 'Production',
+        Application: 'WebApp',
+        Owner: 'DevOps',
+        CostCenter: 'IT001'
+      }
+    }
+  ]
+  
+  let syncedCount = 0
+  let errors = []
+  
+  for (const cert of mockCertificates) {
+    try {
+      syncedCount += updateOrCreateCertificate(cert, vaultName)
+    } catch (error) {
+      errors.push({ certificate: cert.name, error: error.message })
+    }
+  }
+  
+  response.setStatus(200)
+  response.setBody({
+    success: true,
+    vault: vaultName,
+    synced: syncedCount,
+    errors: errors,
+    timestamp: new GlideDateTime().getDisplayValue()
+  })
+}
+
+function syncAllKeyVaults(response) {
+  // Simulate discovering all Key Vaults in subscription
+  const mockVaults = ['prod-kv-eastus', 'staging-kv-eastus', 'dev-kv-eastus']
+  const results = []
+  
+  for (const vault of mockVaults) {
+    const tempResponse = { status: null, body: null }
+    tempResponse.setStatus = (status) => { tempResponse.status = status }
+    tempResponse.setBody = (body) => { tempResponse.body = body }
+    
+    syncKeyVaultCertificates(vault, tempResponse)
+    results.push({
+      vault: vault,
+      status: tempResponse.status,
+      result: tempResponse.body
+    })
+  }
+  
+  response.setStatus(200)
+  response.setBody({
+    success: true,
+    message: 'Bulk sync completed',
+    vaults: results,
+    timestamp: new GlideDateTime().getDisplayValue()
+  })
+}
+
+function triggerManualSync(request, response) {
+  const body = request.body.data
+  const vaultName = body.vault_name
+  const forceUpdate = body.force_update || false
+  
+  if (!vaultName) {
+    response.setStatus(400)
+    response.setBody({ error: 'vault_name is required' })
+    return
+  }
+  
+  // Log manual sync trigger
+  gs.info(`Manual Azure Key Vault sync triggered for: ${vaultName} by user: ${gs.getUserID()}`)
+  
+  syncKeyVaultCertificates(vaultName, response)
+}
+
+function updateOrCreateCertificate(azureCert, vaultName) {
+  const thumbprint = azureCert.properties.x509Thumbprint
+  
+  // Check if certificate exists
+  const existingCert = new GlideRecord('x_1055524_azure_ce_certificate')
+  existingCert.addQuery('thumbprint', thumbprint)
+  existingCert.query()
+  
+  let certRecord
+  if (existingCert.next()) {
+    certRecord = existingCert
+  } else {
+    certRecord = new GlideRecord('x_1055524_azure_ce_certificate')
+    certRecord.initialize()
+  }
+  
+  // Map Azure certificate data to ServiceNow fields
+  certRecord.certificate_name = azureCert.name
+  certRecord.thumbprint = thumbprint
+  certRecord.expiry_date = azureCert.properties.notAfter
+  certRecord.issuer = azureCert.properties.issuer
+  certRecord.key_vault_name = vaultName
+  certRecord.subject_name = azureCert.properties.subject
+  certRecord.key_size = azureCert.properties.keySize
+  certRecord.azure_cert_id = azureCert.id
+  certRecord.discovery_source = 'Azure Key Vault API'
+  certRecord.last_discovered = new GlideDateTime()
+  
+  if (azureCert.properties.subjectAlternativeNames && azureCert.properties.subjectAlternativeNames.dnsNames) {
+    certRecord.san_dns_names = azureCert.properties.subjectAlternativeNames.dnsNames.join(',')
+  }
+  
+  // Parse Azure tags
+  if (azureCert.tags) {
+    const tagStrings = []
+    for (const key in azureCert.tags) {
+      tagStrings.push(`${key}=${azureCert.tags[key]}`)
+    }
+    certRecord.azure_tags = tagStrings.join(';')
+    
+    // Set environment from tags
+    if (azureCert.tags.Environment) {
+      const env = azureCert.tags.Environment.toLowerCase()
+      if (['production', 'staging', 'development', 'test'].includes(env)) {
+        certRecord.environment = env
+      }
+    }
+  }
+  
+  if (existingCert.isValidRecord()) {
+    certRecord.update()
+  } else {
+    certRecord.insert()
+  }
+  
+  return 1
+}
+
+// Certificate Analytics API
+export function certificateAnalytics(request, response) {
+  try {
+    const method = request.method
+    const pathParam = request.pathParams.type
+    
+    if (method === 'GET' && pathParam === 'dashboard') {
+      return getDashboardData(response)
+    } else if (method === 'GET' && pathParam === 'compliance') {
+      return getComplianceReport(response)
+    } else if (method === 'GET' && pathParam === 'risk') {
+      return getRiskAnalysis(response)
+    } else if (method === 'GET' && pathParam === 'trends') {
+      return getTrendData(response)
+    }
+    
+    response.setStatus(404)
+    response.setBody({ error: 'Endpoint not found' })
+    
+  } catch (error) {
+    gs.error('Certificate Analytics Error: ' + error.message)
+    response.setStatus(500)
+    response.setBody({ error: 'Internal server error', message: error.message })
+  }
+}
+
+function getDashboardData(response) {
+  const data = {
+    summary: {
+      total: 0,
+      expiring_30: 0,
+      expiring_60: 0,
+      expiring_90: 0,
+      expired: 0,
+      high_risk: 0
+    },
+    by_environment: {},
+    by_criticality: {},
+    by_status: {},
+    recent_activity: []
+  }
+  
+  // Get summary counts
+  const now = new GlideDateTime()
+  const thirtyDays = new GlideDateTime()
+  thirtyDays.addDaysLocalTime(30)
+  const sixtyDays = new GlideDateTime()
+  sixtyDays.addDaysLocalTime(60)
+  const ninetyDays = new GlideDateTime()
+  ninetyDays.addDaysLocalTime(90)
+  
+  // Total certificates
+  const totalCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+  totalCerts.addQuery('lifecycle_state', '!=', 'retired')
+  totalCerts.query()
+  data.summary.total = totalCerts.getRowCount()
+  
+  // Expiring certificates
+  const expiring30 = new GlideRecord('x_1055524_azure_ce_certificate')
+  expiring30.addQuery('expiry_date', '>=', now)
+  expiring30.addQuery('expiry_date', '<=', thirtyDays)
+  expiring30.query()
+  data.summary.expiring_30 = expiring30.getRowCount()
+  
+  // High risk certificates
+  const highRisk = new GlideRecord('x_1055524_azure_ce_certificate')
+  highRisk.addQuery('risk_score', '>=', 70)
+  highRisk.query()
+  data.summary.high_risk = highRisk.getRowCount()
+  
+  // Group by environment
+  const envCounts = {}
+  const allCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+  allCerts.query()
+  while (allCerts.next()) {
+    const env = allCerts.environment.toString() || 'unknown'
+    envCounts[env] = (envCounts[env] || 0) + 1
+  }
+  data.by_environment = envCounts
+  
+  response.setStatus(200)
+  response.setBody(data)
+}
+
+function getComplianceReport(response) {
+  const report = {
+    compliance_score: 0,
+    total_certificates: 0,
+    compliant: 0,
+    non_compliant: 0,
+    violations: [],
+    recommendations: []
+  }
+  
+  const totalCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+  totalCerts.query()
+  report.total_certificates = totalCerts.getRowCount()
+  
+  const compliantCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+  compliantCerts.addQuery('compliance_status', 'compliant')
+  compliantCerts.query()
+  report.compliant = compliantCerts.getRowCount()
+  
+  report.non_compliant = report.total_certificates - report.compliant
+  report.compliance_score = Math.round((report.compliant / report.total_certificates) * 100)
+  
+  // Common violations
+  const missingOwner = new GlideRecord('x_1055524_azure_ce_certificate')
+  missingOwner.addNullQuery('certificate_owner')
+  missingOwner.query()
+  
+  if (missingOwner.getRowCount() > 0) {
+    report.violations.push({
+      type: 'missing_owner',
+      count: missingOwner.getRowCount(),
+      description: 'Certificates without assigned owners'
+    })
+  }
+  
+  response.setStatus(200)
+  response.setBody(report)
+}
+
+function getRiskAnalysis(response) {
+  const analysis = {
+    risk_distribution: {
+      low: 0,    // 0-25
+      medium: 0, // 26-50
+      high: 0,   // 51-75
+      critical: 0 // 76-100
+    },
+    top_risks: [],
+    mitigation_recommendations: []
+  }
+  
+  const allCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+  allCerts.orderByDesc('risk_score')
+  allCerts.query()
+  
+  while (allCerts.next()) {
+    const score = parseInt(allCerts.risk_score) || 0
+    
+    if (score >= 76) analysis.risk_distribution.critical++
+    else if (score >= 51) analysis.risk_distribution.high++
+    else if (score >= 26) analysis.risk_distribution.medium++
+    else analysis.risk_distribution.low++
+    
+    if (analysis.top_risks.length < 10 && score > 50) {
+      analysis.top_risks.push({
+        certificate: allCerts.certificate_name.toString(),
+        risk_score: score,
+        expiry_date: allCerts.expiry_date.getDisplayValue(),
+        environment: allCerts.environment.toString()
+      })
+    }
+  }
+  
+  response.setStatus(200)
+  response.setBody(analysis)
+}
+
+function getTrendData(response) {
+  // This would normally query historical analytics data
+  const trends = {
+    certificate_growth: [
+      { month: 'Jan 2024', count: 45 },
+      { month: 'Feb 2024', count: 47 },
+      { month: 'Mar 2024', count: 52 },
+      { month: 'Apr 2024', count: 48 },
+      { month: 'May 2024', count: 51 },
+      { month: 'Jun 2024', count: 53 }
+    ],
+    renewal_success_rate: [
+      { month: 'Jan 2024', rate: 95 },
+      { month: 'Feb 2024', rate: 92 },
+      { month: 'Mar 2024', rate: 97 },
+      { month: 'Apr 2024', rate: 94 },
+      { month: 'May 2024', rate: 96 },
+      { month: 'Jun 2024', rate: 98 }
+    ],
+    risk_trends: [
+      { month: 'Jan 2024', avg_risk: 35 },
+      { month: 'Feb 2024', avg_risk: 32 },
+      { month: 'Mar 2024', avg_risk: 28 },
+      { month: 'Apr 2024', avg_risk: 31 },
+      { month: 'May 2024', avg_risk: 29 },
+      { month: 'Jun 2024', avg_risk: 26 }
+    ]
+  }
+  
+  response.setStatus(200)
+  response.setBody(trends)
+}
+
+// Workflow Management API
+export function workflowManagement(request, response) {
+  try {
+    const method = request.method
+    const pathParam = request.pathParams.action
+    
+    if (method === 'POST' && pathParam === 'create-renewal') {
+      return createRenewalWorkflow(request, response)
+    } else if (method === 'PUT' && pathParam === 'approve') {
+      return approveWorkflow(request, response)
+    } else if (method === 'PUT' && pathParam === 'reject') {
+      return rejectWorkflow(request, response)
+    } else if (method === 'GET' && pathParam === 'pending') {
+      return getPendingApprovals(response)
+    }
+    
+    response.setStatus(404)
+    response.setBody({ error: 'Endpoint not found' })
+    
+  } catch (error) {
+    gs.error('Workflow Management Error: ' + error.message)
+    response.setStatus(500)
+    response.setBody({ error: 'Internal server error', message: error.message })
+  }
+}
+
+function createRenewalWorkflow(request, response) {
+  const data = request.body.data
+  const certificateId = data.certificate_id
+  const renewalType = data.renewal_type || 'standard'
+  const justification = data.justification
+  
+  if (!certificateId || !justification) {
+    response.setStatus(400)
+    response.setBody({ error: 'certificate_id and justification are required' })
+    return
+  }
+  
+  // Create workflow record
+  const workflow = new GlideRecord('x_1055524_azure_ce_renewal_workflow')
+  workflow.initialize()
+  workflow.certificate = certificateId
+  workflow.renewal_type = renewalType
+  workflow.business_justification = justification
+  workflow.renewal_status = 'pending_approval'
+  workflow.certificate_owner_approval = 'pending'
+  workflow.application_owner_approval = 'pending'
+  workflow.security_team_approval = 'pending'
+  workflow.platform_ops_approval = renewalType === 'emergency' ? 'pending' : 'not_required'
+  workflow.state = 1 // New
+  workflow.assigned_to = gs.getUserID()
+  
+  const workflowId = workflow.insert()
+  
+  // Send notifications (would trigger notification rules)
+  gs.eventQueue('certificate.renewal.requested', workflow, certificateId, gs.getUserID())
+  
+  response.setStatus(201)
+  response.setBody({
+    success: true,
+    workflow_id: workflowId,
+    message: 'Renewal workflow created successfully'
+  })
+}
+
+function approveWorkflow(request, response) {
+  const data = request.body.data
+  const workflowId = data.workflow_id
+  const approvalType = data.approval_type
+  const comments = data.comments || ''
+  
+  const workflow = new GlideRecord('x_1055524_azure_ce_renewal_workflow')
+  if (!workflow.get(workflowId)) {
+    response.setStatus(404)
+    response.setBody({ error: 'Workflow not found' })
+    return
+  }
+  
+  // Update appropriate approval field
+  if (approvalType === 'certificate_owner') {
+    workflow.certificate_owner_approval = 'approved'
+  } else if (approvalType === 'application_owner') {
+    workflow.application_owner_approval = 'approved'
+  } else if (approvalType === 'security_team') {
+    workflow.security_team_approval = 'approved'
+  } else if (approvalType === 'platform_ops') {
+    workflow.platform_ops_approval = 'approved'
+  }
+  
+  workflow.work_notes = `Approved by ${gs.getUserDisplayName()}: ${comments}`
+  workflow.update()
+  
+  // Check if all required approvals are complete
+  checkWorkflowCompleteness(workflow)
+  
+  response.setStatus(200)
+  response.setBody({
+    success: true,
+    message: 'Workflow approved successfully'
+  })
+}
+
+function rejectWorkflow(request, response) {
+  const data = request.body.data
+  const workflowId = data.workflow_id
+  const reason = data.reason || 'No reason provided'
+  
+  const workflow = new GlideRecord('x_1055524_azure_ce_renewal_workflow')
+  if (!workflow.get(workflowId)) {
+    response.setStatus(404)
+    response.setBody({ error: 'Workflow not found' })
+    return
+  }
+  
+  workflow.renewal_status = 'cancelled'
+  workflow.state = 8 // Cancelled
+  workflow.work_notes = `Rejected by ${gs.getUserDisplayName()}: ${reason}`
+  workflow.update()
+  
+  // Send rejection notification
+  gs.eventQueue('certificate.renewal.rejected', workflow, reason)
+  
+  response.setStatus(200)
+  response.setBody({
+    success: true,
+    message: 'Workflow rejected'
+  })
+}
+
+function getPendingApprovals(response) {
+  const currentUser = gs.getUserID()
+  const pendingApprovals = []
+  
+  // Query workflows needing approval from current user
+  const workflows = new GlideRecord('x_1055524_azure_ce_renewal_workflow')
+  workflows.addQuery('renewal_status', 'pending_approval')
+  workflows.query()
+  
+  while (workflows.next()) {
+    const cert = new GlideRecord('x_1055524_azure_ce_certificate')
+    if (cert.get(workflows.certificate.toString())) {
+      // Check if current user needs to approve
+      const needsApproval = (
+        (workflows.certificate_owner_approval == 'pending' && cert.certificate_owner == currentUser) ||
+        (workflows.application_owner_approval == 'pending' && cert.application_owner == currentUser) ||
+        (workflows.security_team_approval == 'pending' && gs.hasRole('x_1055524_azure_ce.certificate_manager')) ||
+        (workflows.platform_ops_approval == 'pending' && gs.hasRole('itil'))
+      )
+      
+      if (needsApproval) {
+        pendingApprovals.push({
+          workflow_id: workflows.sys_id.toString(),
+          number: workflows.number.toString(),
+          certificate_name: cert.certificate_name.toString(),
+          renewal_type: workflows.renewal_type.toString(),
+          justification: workflows.business_justification.toString(),
+          created: workflows.sys_created_on.getDisplayValue()
+        })
+      }
+    }
+  }
+  
+  response.setStatus(200)
+  response.setBody({
+    pending_approvals: pendingApprovals,
+    count: pendingApprovals.length
+  })
+}
+
+function checkWorkflowCompleteness(workflow) {
+  const allApproved = (
+    workflow.certificate_owner_approval == 'approved' &&
+    workflow.application_owner_approval == 'approved' &&
+    workflow.security_team_approval == 'approved' &&
+    (workflow.platform_ops_approval == 'approved' || workflow.platform_ops_approval == 'not_required')
+  )
+  
+  if (allApproved) {
+    workflow.renewal_status = 'approved'
+    workflow.state = 2 // In Progress
+    workflow.update()
+    
+    // Trigger certificate renewal process
+    gs.eventQueue('certificate.renewal.approved', workflow)
+  }
+}]]></content>
+        <external_source>false</external_source>
+        <path>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/azure-integration-handlers.js</path>
+        <sys_class_name>sys_module</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 11:07:12</sys_created_on>
+        <sys_id>8b7088053f9642c69f84d5589d151d6f</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/azure-integration-handlers.js</sys_name>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+        <sys_update_name>sys_module_8b7088053f9642c69f84d5589d151d6f</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 11:07:12</sys_updated_on>
+    </sys_module>
+</record_update>

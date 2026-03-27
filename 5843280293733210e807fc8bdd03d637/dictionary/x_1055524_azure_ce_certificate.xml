@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element audit="true" db_object_id="aa15600693733210e807fc8bdd03d666" extends="cmdb_ci" label="Azure Certificate" max_length="40" name="x_1055524_azure_ce_certificate" type="collection">
+        <element label="Key Size" max_length="40" name="key_size" type="integer"/>
+        <element default="true" label="Is Used" max_length="40" name="is_used" type="boolean"/>
+        <element attributes="edge_encryption_enabled=true" label="Issuer" max_length="255" name="issuer" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Azure Tags" max_length="2000" name="azure_tags" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Ownership Validated On" max_length="40" name="ownership_validated_on" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true" label="Compliance Validated On" max_length="40" name="compliance_validated_on" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true" label="Expiry Date" mandatory="true" max_length="40" name="expiry_date" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true" label="SAN DNS Names" max_length="2000" name="san_dns_names" type="string"/>
+        <element label="Usage Count" max_length="40" name="usage_count" type="integer"/>
+        <element choice="1" label="Lifecycle State" max_length="40" name="lifecycle_state" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Expiring Soon" sequence="1" value="expiring_soon"/>
+                <element inactive_on_update="false" label="Expired" sequence="2" value="expired"/>
+                <element inactive_on_update="false" label="Revoked" sequence="3" value="revoked"/>
+                <element inactive_on_update="false" label="Active" sequence="0" value="active"/>
+                <element inactive_on_update="false" label="Retired" sequence="4" value="retired"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Next Renewal Date" max_length="40" name="next_renewal_date" type="glide_date_time"/>
+        <element label="Ownership Validated" max_length="40" name="ownership_validated" type="boolean"/>
+        <element attributes="edge_encryption_enabled=true" label="Azure Subscription" max_length="255" name="azure_subscription" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Thumbprint" mandatory="true" max_length="255" name="thumbprint" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Subject Name" max_length="500" name="subject_name" type="string"/>
+        <element attributes="encode_utf8=false" label="Application Owner" max_length="32" name="application_owner" reference="sys_user" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" label="Azure Certificate ID" max_length="500" name="azure_cert_id" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Azure Secret ID" max_length="500" name="azure_secret_id" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Resource Group" max_length="255" name="resource_group" type="string"/>
+        <element label="Risk Score" max_length="40" name="risk_score" type="integer"/>
+        <element attributes="edge_encryption_enabled=true" label="Signature Algorithm" max_length="100" name="signature_algorithm" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Key Vault Name" max_length="255" name="key_vault_name" type="string"/>
+        <element attributes="encode_utf8=false" label="Application Service" max_length="32" name="application_mapping" reference="cmdb_ci_service" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" label="Last Renewal Date" max_length="40" name="last_renewal_date" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true" label="Renewal Request Number" max_length="100" name="renewal_request_number" type="string"/>
+        <element choice="1" label="Renewal Status" max_length="40" name="renewal_status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Renewal Completed" sequence="5" value="renewal_completed"/>
+                <element inactive_on_update="false" label="Renewal Required" sequence="1" value="renewal_required"/>
+                <element inactive_on_update="false" label="Renewal In Progress" sequence="2" value="renewal_in_progress"/>
+                <element inactive_on_update="false" label="Renewal Approved" sequence="3" value="renewal_approved"/>
+                <element inactive_on_update="false" label="Not Required" sequence="0" value="not_required"/>
+                <element inactive_on_update="false" label="Renewal Rejected" sequence="4" value="renewal_rejected"/>
+            </choice>
+        </element>
+        <element choice="1" label="Business Criticality" max_length="40" name="business_criticality" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="High" sequence="1" value="high"/>
+                <element inactive_on_update="false" label="Low" sequence="3" value="low"/>
+                <element inactive_on_update="false" label="Critical" sequence="0" value="critical"/>
+                <element inactive_on_update="false" label="Medium" sequence="2" value="medium"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Renewal Due Date" max_length="40" name="renewal_due_date" type="glide_date_time"/>
+        <element attributes="encode_utf8=false" label="Certificate Owner" mandatory="true" max_length="32" name="certificate_owner" reference="sys_user" type="reference"/>
+        <element choice="1" label="Compliance Status" max_length="40" name="compliance_status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Compliant" sequence="0" value="compliant"/>
+                <element inactive_on_update="false" label="Non-Compliant" sequence="1" value="non_compliant"/>
+                <element inactive_on_update="false" label="Pending Review" sequence="2" value="pending_review"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" display="true" label="Certificate Name" mandatory="true" max_length="255" name="certificate_name" type="string"/>
+    </element>
+</database>

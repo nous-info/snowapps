@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_package_dependency_m2m">
+    <sys_package_dependency_m2m action="INSERT_OR_UPDATE">
+        <dependency display_value="Task table schema" source="com.glide.task">49fb2e42187232108bb255f46a373aaf</dependency>
+        <min_version>1.0.0</min_version>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 11:07:09</sys_created_on>
+        <sys_id>28d9200293b33210e807fc8bdd03d642</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 11:07:09</sys_updated_on>
+    </sys_package_dependency_m2m>
+</record_update>

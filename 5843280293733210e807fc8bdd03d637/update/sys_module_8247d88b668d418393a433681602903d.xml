@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_module">
+    <sys_module action="INSERT_OR_UPDATE">
+        <content><![CDATA[import { gs, GlideRecord, GlideDateTime } from '@servicenow/glide'
+
+// Azure Certificate Discovery and Sync
+export function syncAzureCertificates() {
+  try {
+    gs.info('Starting Azure Certificate Discovery and Sync...')
+    
+    // This is a placeholder for actual Azure Key Vault integration
+    // In a real implementation, you would:
+    // 1. Use IntegrationHub to connect to Azure Key Vault REST API
+    // 2. Authenticate using OAuth or Service Principal
+    // 3. Retrieve certificate data from multiple key vaults
+    // 4. Parse and normalize the certificate data
+    
+    // Simulate certificate discovery data
+    const discoveredCerts = [
+      {
+        name: 'prod-webapp-ssl',
+        thumbprint: 'A1B2C3D4E5F6789012345678901234567890ABCD',
+        expiry_date: '2024-12-15 23:59:59',
+        issuer: 'DigiCert Inc',
+        subscription: 'prod-subscription-001',
+        key_vault: 'prod-kv-eastus',
+        resource_group: 'rg-prod-certificates',
+        environment: 'production',
+        subject_name: 'CN=webapp.company.com',
+        san_dns_names: 'webapp.company.com,api.company.com',
+        key_size: 2048,
+        signature_algorithm: 'SHA256withRSA'
+      },
+      {
+        name: 'staging-api-ssl',
+        thumbprint: 'B2C3D4E5F6789012345678901234567890ABCDE1',
+        expiry_date: '2024-11-30 23:59:59',
+        issuer: 'Let\'s Encrypt Authority X3',
+        subscription: 'staging-subscription-002',
+        key_vault: 'staging-kv-eastus',
+        resource_group: 'rg-staging-certificates',
+        environment: 'staging',
+        subject_name: 'CN=staging-api.company.com',
+        san_dns_names: 'staging-api.company.com',
+        key_size: 2048,
+        signature_algorithm: 'SHA256withRSA'
+      }
+    ]
+    
+    let syncedCount = 0
+    let updatedCount = 0
+    let newCount = 0
+    
+    for (const certData of discoveredCerts) {
+      // Check if certificate already exists by thumbprint
+      const existingCert = new GlideRecord('x_1055524_azure_ce_certificate')
+      existingCert.addQuery('thumbprint', certData.thumbprint)
+      existingCert.query()
+      
+      let certRecord
+      let isNew = false
+      
+      if (existingCert.next()) {
+        certRecord = existingCert
+        updatedCount++
+      } else {
+        certRecord = new GlideRecord('x_1055524_azure_ce_certificate')
+        certRecord.initialize()
+        isNew = true
+        newCount++
+      }
+      
+      // Update certificate fields
+      certRecord.certificate_name = certData.name
+      certRecord.thumbprint = certData.thumbprint
+      certRecord.expiry_date = certData.expiry_date
+      certRecord.issuer = certData.issuer
+      certRecord.azure_subscription = certData.subscription
+      certRecord.key_vault_name = certData.key_vault
+      certRecord.resource_group = certData.resource_group
+      certRecord.environment = certData.environment
+      certRecord.subject_name = certData.subject_name
+      certRecord.san_dns_names = certData.san_dns_names
+      certRecord.key_size = certData.key_size
+      certRecord.signature_algorithm = certData.signature_algorithm
+      certRecord.discovery_source = 'Azure Key Vault API'
+      certRecord.last_discovered = new GlideDateTime()
+      certRecord.is_used = true
+      
+      // Set business criticality based on environment
+      if (certData.environment === 'production') {
+        certRecord.business_criticality = 'critical'
+      } else if (certData.environment === 'staging') {
+        certRecord.business_criticality = 'high'
+      } else {
+        certRecord.business_criticality = 'medium'
+      }
+      
+      if (isNew) {
+        certRecord.insert()
+      } else {
+        certRecord.update()
+      }
+      
+      syncedCount++
+    }
+    
+    // Update sync statistics
+    gs.info('Azure Certificate Sync completed: ' + syncedCount + ' certificates processed (' + 
+            newCount + ' new, ' + updatedCount + ' updated)')
+    
+    // Clean up orphaned certificates (certificates not discovered in last 7 days)
+    cleanupOrphanedCertificates()
+    
+    return {
+      success: true,
+      synced: syncedCount,
+      new: newCount,
+      updated: updatedCount
+    }
+    
+  } catch (error) {
+    gs.error('Error during Azure Certificate Sync: ' + error.message)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+// Clean up orphaned certificates
+function cleanupOrphanedCertificates() {
+  try {
+    const cutoffDate = new GlideDateTime()
+    cutoffDate.addDaysLocalTime(-7)
+    
+    const orphanedCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+    orphanedCerts.addQuery('last_discovered', '<', cutoffDate)
+    orphanedCerts.addQuery('lifecycle_state', '!=', 'retired')
+    orphanedCerts.query()
+    
+    let orphanedCount = 0
+    while (orphanedCerts.next()) {
+      // Mark as potentially orphaned instead of deleting
+      orphanedCerts.lifecycle_state = 'retired'
+      orphanedCerts.compliance_status = 'pending_review'
+      orphanedCerts.is_used = false
+      orphanedCerts.update()
+      orphanedCount++
+    }
+    
+    if (orphanedCount > 0) {
+      gs.info('Marked ' + orphanedCount + ' certificates as potentially orphaned')
+    }
+    
+  } catch (error) {
+    gs.error('Error cleaning up orphaned certificates: ' + error.message)
+  }
+}
+
+// Generate certificate compliance report
+export function generateComplianceReport() {
+  try {
+    const report = {
+      total_certificates: 0,
+      expiring_30_days: 0,
+      expiring_60_days: 0,
+      expiring_90_days: 0,
+      expired: 0,
+      missing_owner: 0,
+      missing_application: 0,
+      high_risk: 0,
+      non_compliant: 0
+    }
+    
+    // Count all certificates
+    const allCerts = new GlideRecord('x_1055524_azure_ce_certificate')
+    allCerts.addQuery('lifecycle_state', '!=', 'retired')
+    allCerts.query()
+    report.total_certificates = allCerts.getRowCount()
+    
+    // Count certificates by expiry periods
+    const now = new GlideDateTime()
+    const thirtyDays = new GlideDateTime()
+    thirtyDays.addDaysLocalTime(30)
+    const sixtyDays = new GlideDateTime()
+    sixtyDays.addDaysLocalTime(60)
+    const ninetyDays = new GlideDateTime()
+    ninetyDays.addDaysLocalTime(90)
+    
+    // Expiring in 30 days
+    const cert30 = new GlideRecord('x_1055524_azure_ce_certificate')
+    cert30.addQuery('expiry_date', '>=', now)
+    cert30.addQuery('expiry_date', '<=', thirtyDays)
+    cert30.query()
+    report.expiring_30_days = cert30.getRowCount()
+    
+    // Expiring in 60 days
+    const cert60 = new GlideRecord('x_1055524_azure_ce_certificate')
+    cert60.addQuery('expiry_date', '>=', thirtyDays)
+    cert60.addQuery('expiry_date', '<=', sixtyDays)
+    cert60.query()
+    report.expiring_60_days = cert60.getRowCount()
+    
+    // Expiring in 90 days
+    const cert90 = new GlideRecord('x_1055524_azure_ce_certificate')
+    cert90.addQuery('expiry_date', '>=', sixtyDays)
+    cert90.addQuery('expiry_date', '<=', ninetyDays)
+    cert90.query()
+    report.expiring_90_days = cert90.getRowCount()
+    
+    // Already expired
+    const expired = new GlideRecord('x_1055524_azure_ce_certificate')
+    expired.addQuery('expiry_date', '<', now)
+    expired.query()
+    report.expired = expired.getRowCount()
+    
+    // Missing owner
+    const missingOwner = new GlideRecord('x_1055524_azure_ce_certificate')
+    missingOwner.addNullQuery('certificate_owner')
+    missingOwner.query()
+    report.missing_owner = missingOwner.getRowCount()
+    
+    // Missing application mapping
+    const missingApp = new GlideRecord('x_1055524_azure_ce_certificate')
+    missingApp.addNullQuery('application_mapping')
+    missingApp.query()
+    report.missing_application = missingApp.getRowCount()
+    
+    // High risk certificates
+    const highRisk = new GlideRecord('x_1055524_azure_ce_certificate')
+    highRisk.addQuery('risk_score', '>=', 70)
+    highRisk.query()
+    report.high_risk = highRisk.getRowCount()
+    
+    // Non-compliant certificates
+    const nonCompliant = new GlideRecord('x_1055524_azure_ce_certificate')
+    nonCompliant.addQuery('compliance_status', 'non_compliant')
+    nonCompliant.query()
+    report.non_compliant = nonCompliant.getRowCount()
+    
+    gs.info('Certificate Compliance Report Generated: ' + JSON.stringify(report))
+    return report
+    
+  } catch (error) {
+    gs.error('Error generating compliance report: ' + error.message)
+    return null
+  }
+}]]></content>
+        <external_source>false</external_source>
+        <path>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/azure-certificate-sync.js</path>
+        <sys_class_name>sys_module</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 10:47:07</sys_created_on>
+        <sys_id>8247d88b668d418393a433681602903d</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/azure-certificate-sync.js</sys_name>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+        <sys_update_name>sys_module_8247d88b668d418393a433681602903d</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 10:47:07</sys_updated_on>
+    </sys_module>
+</record_update>

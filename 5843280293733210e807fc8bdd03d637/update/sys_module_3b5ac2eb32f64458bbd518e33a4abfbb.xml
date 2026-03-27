@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_module">
+    <sys_module action="INSERT_OR_UPDATE">
+        <content><![CDATA[import { gs, GlideDateTime, GlideRecord } from '@servicenow/glide'
+
+// Certificate Risk Scoring and Lifecycle Management
+export function calculateCertificateRisk(current, previous) {
+  try {
+    // Skip if this is a new record without required fields
+    if (!current.expiry_date || !current.expiry_date.getValue()) {
+      return
+    }
+
+    const expiryDate = new GlideDateTime(current.expiry_date.getValue())
+    const now = new GlideDateTime()
+    const daysUntilExpiry = Math.ceil((expiryDate.getNumericValue() - now.getNumericValue()) / (1000 * 60 * 60 * 24))
+    
+    let riskScore = 0
+    let lifecycleState = 'active'
+    let renewalStatus = 'not_required'
+    
+    // Calculate risk based on expiry proximity
+    if (daysUntilExpiry <= 0) {
+      riskScore += 40
+      lifecycleState = 'expired'
+      renewalStatus = 'renewal_required'
+    } else if (daysUntilExpiry <= 30) {
+      riskScore += 35
+      lifecycleState = 'expiring_soon'
+      renewalStatus = 'renewal_required'
+      
+      // Set renewal due date to 7 days before expiry
+      const renewalDueDate = new GlideDateTime(expiryDate.getValue())
+      renewalDueDate.addDaysLocalTime(-7)
+      current.renewal_due_date = renewalDueDate
+    } else if (daysUntilExpiry <= 60) {
+      riskScore += 25
+      lifecycleState = 'expiring_soon'
+      renewalStatus = 'renewal_required'
+    } else if (daysUntilExpiry <= 90) {
+      riskScore += 15
+      renewalStatus = 'renewal_required'
+    }
+    
+    // Add risk based on business criticality
+    const criticality = current.business_criticality.toString()
+    if (criticality === 'critical') {
+      riskScore += 25
+    } else if (criticality === 'high') {
+      riskScore += 15
+    } else if (criticality === 'medium') {
+      riskScore += 10
+    } else if (criticality === 'low') {
+      riskScore += 5
+    }
+    
+    // Add risk based on environment
+    const environment = current.environment.toString()
+    if (environment === 'production') {
+      riskScore += 15
+    } else if (environment === 'staging') {
+      riskScore += 10
+    } else if (environment === 'test') {
+      riskScore += 5
+    }
+    
+    // Add risk for missing ownership or application mapping
+    if (!current.certificate_owner || !current.certificate_owner.getValue()) {
+      riskScore += 20
+      current.compliance_status = 'non_compliant'
+    }
+    
+    if (!current.application_mapping || !current.application_mapping.getValue()) {
+      riskScore += 15
+      current.compliance_status = 'non_compliant'
+    }
+    
+    // Add risk for unused certificates
+    if (current.is_used.toString() === 'false') {
+      riskScore += 10
+    }
+    
+    // Cap risk score at 100
+    riskScore = Math.min(riskScore, 100)
+    
+    // Update calculated fields
+    current.risk_score = riskScore
+    current.lifecycle_state = lifecycleState
+    
+    // Only update renewal status if not already in progress
+    if (current.renewal_status.toString() !== 'renewal_in_progress' && 
+        current.renewal_status.toString() !== 'renewal_approved') {
+      current.renewal_status = renewalStatus
+    }
+    
+    // Set compliance status if not already set
+    if (!current.compliance_status || current.compliance_status.toString() === '') {
+      if (current.certificate_owner && current.application_mapping) {
+        current.compliance_status = 'compliant'
+      } else {
+        current.compliance_status = 'non_compliant'
+      }
+    }
+    
+    // Update last discovered timestamp
+    current.last_discovered = new GlideDateTime()
+    
+    gs.info('Certificate risk calculated: ' + current.certificate_name + ' - Risk Score: ' + riskScore)
+    
+  } catch (error) {
+    gs.error('Error calculating certificate risk for ' + current.certificate_name + ': ' + error.message)
+  }
+}
+
+// Ownership Inference Logic
+export function inferCertificateOwnership(current) {
+  try {
+    // Skip if owner is already assigned
+    if (current.certificate_owner && current.certificate_owner.getValue()) {
+      return
+    }
+    
+    // Try to infer owner from application mapping
+    if (current.application_mapping && current.application_mapping.getValue()) {
+      const appGr = new GlideRecord('cmdb_ci_service')
+      if (appGr.get(current.application_mapping.getValue())) {
+        if (appGr.owned_by && appGr.owned_by.getValue()) {
+          current.certificate_owner = appGr.owned_by.getValue()
+          current.ownership_validated = true
+          current.ownership_validated_on = new GlideDateTime()
+          gs.info('Inferred certificate owner from application service: ' + current.certificate_name)
+          return
+        }
+      }
+    }
+    
+    // Try to infer from subject name or DNS names
+    const subjectName = current.subject_name.toString().toLowerCase()
+    const sanNames = current.san_dns_names.toString().toLowerCase()
+    
+    // Look for service records that match the certificate names
+    const serviceGr = new GlideRecord('cmdb_ci_service')
+    serviceGr.addQuery('name', 'CONTAINS', subjectName)
+    serviceGr.query()
+    
+    if (serviceGr.next() && serviceGr.owned_by && serviceGr.owned_by.getValue()) {
+      current.certificate_owner = serviceGr.owned_by.getValue()
+      current.application_mapping = serviceGr.sys_id.getValue()
+      current.ownership_validated = true
+      current.ownership_validated_on = new GlideDateTime()
+      gs.info('Inferred certificate owner from service name match: ' + current.certificate_name)
+      return
+    }
+    
+    // If no owner found, assign to fallback support group
+    if (current.support_group && current.support_group.getValue()) {
+      const groupGr = new GlideRecord('sys_user_group')
+      if (groupGr.get(current.support_group.getValue()) && groupGr.manager) {
+        current.certificate_owner = groupGr.manager.getValue()
+        gs.info('Assigned certificate to support group manager: ' + current.certificate_name)
+      }
+    }
+    
+  } catch (error) {
+    gs.error('Error inferring certificate ownership for ' + current.certificate_name + ': ' + error.message)
+  }
+}]]></content>
+        <external_source>false</external_source>
+        <path>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/certificate-management.js</path>
+        <sys_class_name>sys_module</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 10:47:06</sys_created_on>
+        <sys_id>3b5ac2eb32f64458bbd518e33a4abfbb</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1055524_azure_ce/x-1055524-azure-certif/1.0.0/src/server/certificate-management.js</sys_name>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+        <sys_update_name>sys_module_3b5ac2eb32f64458bbd518e33a4abfbb</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 10:47:06</sys_updated_on>
+    </sys_module>
+</record_update>

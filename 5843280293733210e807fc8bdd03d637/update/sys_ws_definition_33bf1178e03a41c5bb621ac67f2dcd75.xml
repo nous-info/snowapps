@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_definition">
+    <sys_ws_definition action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <base_uri>/api/x_1055524_azure_ce/azure_certificate_mgmt</base_uri>
+        <consumes>application/json</consumes>
+        <consumes_customized>true</consumes_customized>
+        <default_version>No active default version</default_version>
+        <doc_link/>
+        <enforce_acl>cf9d01d3e73003009d6247e603f6a990</enforce_acl>
+        <is_versioned>true</is_versioned>
+        <name>Azure Certificate Management API</name>
+        <namespace>x_1055524_azure_ce</namespace>
+        <produces>application/json</produces>
+        <produces_customized>true</produces_customized>
+        <service_id>azure_certificate_mgmt</service_id>
+        <short_description>REST API for Azure Certificate lifecycle management operations</short_description>
+        <sys_class_name>sys_ws_definition</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 11:07:15</sys_created_on>
+        <sys_id>33bf1178e03a41c5bb621ac67f2dcd75</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Azure Certificate Management API</sys_name>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+        <sys_update_name>sys_ws_definition_33bf1178e03a41c5bb621ac67f2dcd75</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 11:07:15</sys_updated_on>
+    </sys_ws_definition>
+</record_update>

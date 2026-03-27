@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element audit="true" db_object_id="e7c9a88a93733210e807fc8bdd03d6d6" label="Certificate Notification Log" max_length="40" name="x_1055524_azure_ce_notification_log" type="collection">
+        <element choice="1" label="Delivery Status" max_length="40" name="delivery_status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Failed" sequence="3" value="failed"/>
+                <element inactive_on_update="false" label="Pending" sequence="0" value="pending"/>
+                <element inactive_on_update="false" label="Bounced" sequence="4" value="bounced"/>
+                <element inactive_on_update="false" label="Sent" sequence="1" value="sent"/>
+                <element inactive_on_update="false" label="Delivered" sequence="2" value="delivered"/>
+            </choice>
+        </element>
+        <element attributes="encode_utf8=false" label="Certificate" mandatory="true" max_length="32" name="certificate" reference="x_1055524_azure_ce_certificate" type="reference"/>
+        <element attributes="encode_utf8=false" label="Recipient" mandatory="true" max_length="32" name="recipient" reference="sys_user" type="reference"/>
+        <element choice="1" label="Notification Channel" max_length="40" name="notification_channel" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="SMS" sequence="3" value="sms"/>
+                <element inactive_on_update="false" label="Email" sequence="0" value="email"/>
+                <element inactive_on_update="false" label="Microsoft Teams" sequence="1" value="teams"/>
+                <element inactive_on_update="false" label="ServiceNow Notification" sequence="2" value="servicenow"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Sent Timestamp" max_length="40" name="sent_timestamp" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true" label="Message Subject" max_length="255" name="message_subject" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Delivery Timestamp" max_length="40" name="delivery_timestamp" type="glide_date_time"/>
+        <element choice="1" display="true" label="Notification Type" mandatory="true" max_length="40" name="notification_type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Renewal Completed" sequence="7" value="renewal_completed"/>
+                <element inactive_on_update="false" label="Approval Approved" sequence="3" value="approval_approved"/>
+                <element inactive_on_update="false" label="Certificate Expired" sequence="8" value="certificate_expired"/>
+                <element inactive_on_update="false" label="Expiry Warning" sequence="0" value="expiry_warning"/>
+                <element inactive_on_update="false" label="Approval Rejected" sequence="4" value="approval_rejected"/>
+                <element inactive_on_update="false" label="Renewal Reminder" sequence="1" value="renewal_reminder"/>
+                <element inactive_on_update="false" label="Ownership Missing" sequence="5" value="ownership_missing"/>
+                <element inactive_on_update="false" label="Approval Request" sequence="2" value="approval_request"/>
+                <element inactive_on_update="false" label="Compliance Violation" sequence="6" value="compliance_violation"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Message Body" max_length="4000" name="message_body" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="Error Message" max_length="1000" name="error_message" type="string"/>
+        <index name="index">
+            <element name="certificate"/>
+        </index>
+        <index name="index2">
+            <element name="recipient"/>
+        </index>
+    </element>
+</database>

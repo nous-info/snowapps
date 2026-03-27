@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element audit="true" db_object_id="f3c9acce93733210e807fc8bdd03d659" label="Certificate Analytics" max_length="40" name="x_1055524_azure_ce_analytics" type="collection">
+        <element label="Expiring in 60 Days" max_length="40" name="expiring_60_days" type="integer"/>
+        <element label="Missing Application Mapping" max_length="40" name="missing_application" type="integer"/>
+        <element attributes="edge_encryption_enabled=true" label="Certificates by Environment (JSON)" max_length="1000" name="certificates_by_environment" type="string"/>
+        <element attributes="edge_encryption_enabled=true" display="true" label="Report Date" mandatory="true" max_length="40" name="report_date" type="glide_date_time"/>
+        <element label="Expiring in 90 Days" max_length="40" name="expiring_90_days" type="integer"/>
+        <element label="Non-Compliant Certificates" max_length="40" name="non_compliant_certificates" type="integer"/>
+        <element label="High Risk Certificates" max_length="40" name="high_risk_certificates" type="integer"/>
+        <element attributes="edge_encryption_enabled=true" label="Certificates by Criticality (JSON)" max_length="1000" name="certificates_by_criticality" type="string"/>
+        <element label="Total Certificates" max_length="40" name="total_certificates" type="integer"/>
+        <element label="Expired Certificates" max_length="40" name="expired_certificates" type="integer"/>
+        <element label="Renewal Success Rate (%)" max_length="40" name="renewal_success_rate" type="integer"/>
+        <element label="Expiring in 30 Days" max_length="40" name="expiring_30_days" type="integer"/>
+        <element label="Missing Owner" max_length="40" name="missing_owner" type="integer"/>
+        <element label="Average Risk Score" max_length="40" name="average_risk_score" type="integer"/>
+    </element>
+</database>

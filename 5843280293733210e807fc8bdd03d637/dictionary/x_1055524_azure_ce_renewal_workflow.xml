@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element audit="true" db_object_id="fbc9acce93733210e807fc8bdd03d628" extends="task" label="Certificate Renewal Workflow" max_length="40" name="x_1055524_azure_ce_renewal_workflow" type="collection">
+        <element attributes="edge_encryption_enabled=true" label="Business Justification" mandatory="true" max_length="2000" name="business_justification" type="string"/>
+        <element attributes="encode_utf8=false" label="Certificate" mandatory="true" max_length="32" name="certificate" reference="x_1055524_azure_ce_certificate" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" label="Renewal Window Start" max_length="40" name="renewal_window_start" type="glide_date_time"/>
+        <element choice="1" label="Security Team Approval" max_length="40" name="security_team_approval" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Pending" sequence="0" value="pending"/>
+                <element inactive_on_update="false" label="Approved" sequence="1" value="approved"/>
+                <element inactive_on_update="false" label="Rejected" sequence="2" value="rejected"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Impact Assessment" max_length="2000" name="impact_assessment" type="string"/>
+        <element attributes="edge_encryption_enabled=true" label="New Certificate Thumbprint" max_length="255" name="new_certificate_thumbprint" type="string"/>
+        <element choice="1" label="Platform Operations Approval" max_length="40" name="platform_ops_approval" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Rejected" sequence="2" value="rejected"/>
+                <element inactive_on_update="false" label="Not Required" sequence="3" value="not_required"/>
+                <element inactive_on_update="false" label="Pending" sequence="0" value="pending"/>
+                <element inactive_on_update="false" label="Approved" sequence="1" value="approved"/>
+            </choice>
+        </element>
+        <element choice="1" label="Renewal Status" max_length="40" name="renewal_status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Pending Approval" sequence="1" value="pending_approval"/>
+                <element inactive_on_update="false" label="Failed" sequence="5" value="failed"/>
+                <element inactive_on_update="false" label="Approved" sequence="2" value="approved"/>
+                <element inactive_on_update="false" label="Cancelled" sequence="6" value="cancelled"/>
+                <element inactive_on_update="false" label="In Progress" sequence="3" value="in_progress"/>
+                <element inactive_on_update="false" label="Completed" sequence="4" value="completed"/>
+                <element inactive_on_update="false" label="Planning" sequence="0" value="planning"/>
+            </choice>
+        </element>
+        <element choice="1" label="Renewal Type" mandatory="true" max_length="40" name="renewal_type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Early Renewal" sequence="2" value="early_renewal"/>
+                <element inactive_on_update="false" label="Standard Renewal" sequence="0" value="standard"/>
+                <element inactive_on_update="false" label="Emergency Renewal" sequence="1" value="emergency"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Renewal Window End" max_length="40" name="renewal_window_end" type="glide_date_time"/>
+        <element choice="1" label="Certificate Owner Approval" max_length="40" name="certificate_owner_approval" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Pending" sequence="0" value="pending"/>
+                <element inactive_on_update="false" label="Approved" sequence="1" value="approved"/>
+                <element inactive_on_update="false" label="Rejected" sequence="2" value="rejected"/>
+            </choice>
+        </element>
+        <element attributes="edge_encryption_enabled=true" label="Completion Notes" max_length="2000" name="completion_notes" type="string"/>
+        <element label="Downtime Required" max_length="40" name="downtime_required" type="boolean"/>
+        <element choice="1" label="Application Owner Approval" max_length="40" name="application_owner_approval" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Rejected" sequence="2" value="rejected"/>
+                <element inactive_on_update="false" label="Pending" sequence="0" value="pending"/>
+                <element inactive_on_update="false" label="Approved" sequence="1" value="approved"/>
+            </choice>
+        </element>
+        <element label="Estimated Downtime (minutes)" max_length="40" name="estimated_downtime" type="integer"/>
+    </element>
+</database>

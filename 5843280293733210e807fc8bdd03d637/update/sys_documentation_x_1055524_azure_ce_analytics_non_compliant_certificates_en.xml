@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_documentation element="non_compliant_certificates" label="Non-Compliant Certificates" language="en" table="x_1055524_azure_ce_analytics">
+        <sys_documentation action="INSERT_OR_UPDATE">
+            <element>non_compliant_certificates</element>
+            <help/>
+            <hint/>
+            <label>Non-Compliant Certificates</label>
+            <language>en</language>
+            <name>x_1055524_azure_ce_analytics</name>
+            <plural>Non-Compliant Certificates</plural>
+            <sys_class_name>sys_documentation</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-03-24 11:07:07</sys_created_on>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>Non-Compliant Certificates</sys_name>
+            <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+            <sys_update_name>sys_documentation_x_1055524_azure_ce_analytics_non_compliant_certificates_en</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-03-24 11:07:07</sys_updated_on>
+            <url/>
+            <url_target/>
+        </sys_documentation>
+    </sys_documentation>
+</record_update>

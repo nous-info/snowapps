@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ws_query_parameter_map">
+    <sys_ws_query_parameter_map action="INSERT_OR_UPDATE">
+        <sys_class_name>sys_ws_query_parameter_map</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-03-24 11:07:15</sys_created_on>
+        <sys_id>7cdc0afea499405ebc5d0b53a7bef97b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>d6fb35393c2440658c4946b189d8a405</sys_name>
+        <sys_package display_value="Azure Certif" source="x_1055524_azure_ce">5843280293733210e807fc8bdd03d637</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Azure Certif">5843280293733210e807fc8bdd03d637</sys_scope>
+        <sys_update_name>sys_ws_query_parameter_map_7cdc0afea499405ebc5d0b53a7bef97b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-03-24 11:07:15</sys_updated_on>
+        <web_service_operation display_value="Dashboard Analytics">d0dcda429d6f48348840c2eda897e9b1</web_service_operation>
+        <web_service_query_parameter display_value="type">d6fb35393c2440658c4946b189d8a405</web_service_query_parameter>
+    </sys_ws_query_parameter_map>
+</record_update>
